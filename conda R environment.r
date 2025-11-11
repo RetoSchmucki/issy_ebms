@@ -14,6 +14,9 @@ conda init
 ## restart shell or run
 source ~/.bashrc
 
+## update conda to latest version
+conda update -n base -c conda-forge conda
+
 ## create new conda environment, named R 4.5
 conda create --name R4.5
 
@@ -44,4 +47,7 @@ conda install -c conda-forge r-languageserver
 ## Install rbms package from GitHub
 R
 devtools::install_github("RetoSchmucki/rbms")
+install.packages("viridis")
+install.packages("gridExtra")
+install.packages("rnaturalearth")
 q()
