@@ -30,7 +30,7 @@ conda install -c conda-forge proj gdal udunits2 pkgconfig
 conda install -c conda-forge r-base r-essentials r-devtools
 
 ## INSTALL R packages needed for data handling
-conda install -c conda-forge r-data.table r-dplyr r-readr r-tidyr r-stringr r-lubridate r-purrr r-openxlsx r-glue r-logr
+conda install -c conda-forge r-data.table r-dplyr r-readr r-tidyr r-stringr r-lubridate r-purrr r-openxlsx r-glue r-logr r-rvest r-fnn
 
 ## Install R packages needed for db connection
 conda install -c conda-forge r-rpostgres r-dbi
