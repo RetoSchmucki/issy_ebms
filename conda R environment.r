@@ -36,18 +36,15 @@ conda install -c conda-forge r-data.table r-dplyr r-readr r-tidyr r-stringr r-lu
 conda install -c conda-forge r-rpostgres r-dbi
 
 ## Install pandoc and R packages needed for report generation
-conda install -c conda-forge pandoc r-rmarkdown r-knitr r-bookdown r-plotly r-tinytex
+conda install -c conda-forge pandoc r-rmarkdown r-knitr r-bookdown r-plotly r-tinytex r-kableextra r-viridis r-gridextra r-rnaturalearth r-rnaturalearthdata
 
 ## Install R packages needed for spatial data handling and mapping
-conda install -c conda-forge r-sf r-terra r-stars r-lwgeom
-
+conda install -c conda-forge r-sf r-terra r-stars r-lwgeom r-ggspatial r-tmap r-mapview r-leaflet
 ## Install R packages needed for r language help 
 conda install -c conda-forge r-languageserver
 
 ## Install rbms package from GitHub
 R
 devtools::install_github("RetoSchmucki/rbms")
-install.packages("viridis")
-install.packages("gridExtra")
-install.packages("rnaturalearth")
+devtools::install_github("ropensci/rnaturalearthhires")
 q()
