@@ -25,9 +25,9 @@ cog_url <- "/vsicurl/https://s3.ecodatacube.eu/arco/landcover_clc.plus_f_30m_0..
 clc_r <- terra::rast(cog_url)
 
 ## extract the CLC for each points
-extr_val <- terra::extract(clc_r, terra::vect(st_transform(sf_point, 3035)))
+extr_val <- terra::extract(clc_r, terra::vect(sf::st_transform(sf_point, 3035)))
 
 ## extract/crop the extent (bbox of the points)
-bbox_r <- terra::crop(clc_r, terra::vect(st_buffer(st_transform(sf_point, 3035)[1,], 5000)))
-writeRaster(bbox_r, "my_raster.TIFF", datatype="INT1U", overwrite=TRUE)
+bbox_r <- terra::crop(clc_r, terra::vect(sf::st_buffer(sf::st_transform(sf_point, 3035)[1,], 5000)))
+raster::writeRaster(bbox_r, "my_raster.TIFF", datatype="INT1U", overwrite=TRUE)
 
