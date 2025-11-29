@@ -1,0 +1,115 @@
+---
+title: "Butterfly monitoring schemes: Land cover analysis: France"
+output: html_document
+params:
+    transects: NA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "..")
+
+## Load libraries
+library(tidyverse)
+library(ggplot2)
+library(forcats)
+```
+
+```{r clc_labels, include=FALSE}
+## Set labels for CLC values
+clc_labels <- data.frame(
+  clc = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+        #   253, 254, 255),  # Excluding non-valid values as I don't want these in my plots
+  clc_lab = c("Sealed",
+              "Woody needle leaved trees",
+              "Woody broadleaved deciduous trees",
+              "Woody broadleaved evergreen trees",
+              "Low-growing woody plants",
+              "Permanent herbaceous",
+              "Periodically herbaceous",
+              "Lichens and mosses",
+              "Non and sparsely vegetated",
+              "Water",
+              "Snow and ice")
+            #   "Coastal seawater buffer",
+            #   "Outside area",
+            #   "No data")
+)
+```
+
+```{r clc_comparison, include=FALSE}
+## Join transects summary to country summary
+clc_compare <- summary_country %>%
+    full_join(summary_transects, by = "clc", suffix = c("_country", "_transects")) %>%
+    dplyr::select(clc, perc_country, perc_transects, percweighted_transects = perc_weighted) %>%
+    mutate(percweighted_country = perc_country)
+
+## Reshape to tidy data format
+clc_compare <- clc_compare %>%
+    pivot_longer(c("perc_country", "perc_transects", "percweighted_transects", "percweighted_country"),
+                 names_to = c("measure", "area"),
+                 names_sep = "_"
+                 )
+
+## Add CLC labels and tidy up data for plot
+clc_compare <- clc_compare %>%
+    full_join(clc_labels, by = "clc") %>%
+    replace_na(list(value = 0)) %>%
+    mutate(clc_lab = fct_reorder(clc_lab, value),
+           area = case_when(area == "transects" ~ "Transects",
+                            area == "country" ~ "Scheme area")) %>%
+    mutate(area = factor(area, levels = c("Transects", "Scheme area")))
+```
+
+### Where are the transects located?
+```{r transect_map, fig.cap="Locations of transects surveyed in France, 2020-2024", echo=FALSE}
+## Get France boundaries
+fr_vec <- rnaturalearth::ne_countries(geounit = "France", type = "map_units", scale = "medium", returnclass = "sf") %>%
+  filter(iso_a3 == "FRA") %>%
+  st_transform(crs = 3035)
+
+## Read in transect coordinates
+transects <- read_csv("data/whole_ebms_extract_2020_2024_for_ukceh_land_cover_analysis_extracted_on_20251121/ebms_transect_coord.csv")
+
+## Read in eBMS transect coordinates
+# transects_fr <- params$transects %>% 
+transects_fr <- transects %>% 
+    filter(bms_id == "FRBMS") %>%
+    dplyr::select(transect_lon, transect_lat) %>%
+    drop_na() %>%
+    distinct()
+
+transects_fr_sf <- st_as_sf(transects_fr, coords = c("transect_lon", "transect_lat"), crs = 3035)
+
+## Plot transect locations within France
+ggplot() +
+    geom_sf(data = fr_vec) +
+    geom_sf(data = transects_fr_sf) +
+    theme_minimal() +
+    theme(panel.grid = element_line(color = NA),
+          axis.text = element_blank()
+         )
+```
+
+### How representative are the transects of the land cover types present in the scheme area?
+
+```{r clc_comparison_plot, dpi=300, fig.width=7, fig.height=6, fig.cap="Proportion of transects and scheme areas comprised of each Corine Land Cover classification", echo=FALSE}
+## Create colour palette
+fill_pal <- c("#D7B7AA", "#FFFFFF")
+line_pal <- c("#D7B7AA", "black")
+
+clc_compare %>%
+    filter(measure == "percweighted") %>%
+    ggplot(aes(y = clc_lab, x = value, fill = area, colour = area)) +
+    geom_col(position = "dodge") +
+    xlab("Proportion of area (%)") +
+    ylab("Corine Land Cover classification") +
+    theme_minimal() +
+    theme(axis.title.y = element_blank(),
+          legend.title = element_blank(),
+          legend.position="bottom") +
+    scale_fill_manual(values = fill_pal,
+                      guide = guide_legend(reverse = TRUE)) +
+    scale_colour_manual(values = line_pal,
+                      guide = guide_legend(reverse = TRUE))
+```

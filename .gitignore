@@ -1,5 +1,5 @@
-./data/*
-./src/*
-./terra_tmp/*
-./GADM/*
-./eBMS_land_cover/data/*
+data/*
+src/*
+terra_tmp/*
+GADM/*
+eBMS_land_cover/data/*

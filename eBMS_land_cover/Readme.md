@@ -12,3 +12,7 @@
 
 ### Note
 Corine Land Cover can be visualise in QGIS using the WMS provided by Copernicus ()
+
+### Running the code
+
+- File paths are relative. You should start by opening the 'eBMS land cover' folder in VS Code. This will set the correct working directory so all the file paths work.
