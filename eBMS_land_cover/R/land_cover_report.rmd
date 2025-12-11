@@ -112,8 +112,8 @@ transects_scheme_sf <- st_as_sf(transects_scheme, coords = c("transect_lon", "tr
 ```{r transect_map, fig.cap=paste0("Locations of transects surveyed in ", params$country, " (", years_formatted, ")"), echo=FALSE}
 ## Plot transect locations onto country map
 ggplot() +
-    geom_sf(data = country_vec, fill = "#D6EAE6", colour = NA) +
-    geom_sf(data = transects_scheme_sf) +
+    geom_sf(data = country_vec, fill = "white", colour = "black") +
+    geom_sf(data = transects_scheme_sf, colour = "#D7B7AA") +
     theme_minimal() +
     theme(panel.grid = element_line(color = NA),
           axis.text = element_blank()
@@ -130,7 +130,7 @@ line_pal <- c("#D7B7AA", "black")
 clc_compare %>%
     filter(measure == "percweighted") %>%
     ggplot(aes(y = clc_lab, x = value, fill = area, colour = area)) +
-    geom_col(position = "dodge") +
+    geom_col(width = 0.7, position = position_dodge(0.7)) +
     xlab("Proportion of area (%)") +
     ylab("Corine Land Cover classification") +
     theme_minimal() +
