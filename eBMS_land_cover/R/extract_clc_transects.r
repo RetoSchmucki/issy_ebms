@@ -11,38 +11,6 @@ library(sf)
 library(geodata)
 library(raster)
 library(tidyverse)
-library(countrycode)
-
-### Set parameters =========================================================================================================================
-
-## Specify country/area name and scheme ID
-country <- "France"
-scheme_id <- "FRBMS"
-country_iso_a3 <- countrycode(country, origin = "country.name.en", destination = "iso3c")
-
-## Choose whether to overwrite pre-processed files if they already exist e.g. raster cropped to the country of interest
-# Only set to TRUE if there are updates needed in the pre-processing steps, as these take some time to run
-overwrite_files <- TRUE
-
-### Set file paths =========================================================================================================================
-
-## Path: Temp files folder for terra
-tmp_dir <- "/home/isorus/tmp"
-
-## URL: Raster of Corine Land Cover values
-# note that we add the prefix "/vsicurl/" to the COG URL found in https://stac.ecodatacube.eu/
-cog_url <- "/vsicurl/https://s3.ecodatacube.eu/arco/landcover_clc.plus_f_30m_0..0cm_20220101_20241231_eu_epsg.3035_v20250327.tif"
-
-## Path: Transect coordinates
-transects_path <- "data/whole_ebms_extract_2020_2024_for_ukceh_land_cover_analysis_extracted_on_20251121/ebms_transect_coord.csv"
-
-## Path: CLC values for eBMS transects, extracted from CLC raster
-ebms_clc_path <- "data/whole_ebms_extract_2020_2024_for_ukceh_land_cover_analysis_extracted_on_20251121/ebms_transect_clc.csv"
-
-country_raster_path <- paste0("data/eBMS_land_cover/", scheme_id, "_area_raster.tif")
-
-## Path: Frequency table of CLC values for the selected country
-country_clc_freq_path <- paste0("data/eBMS_land_cover/", country, "_clc_freq.csv")
 
 ### Prep data ==============================================================================================================================
 
@@ -50,8 +18,15 @@ country_clc_freq_path <- paste0("data/eBMS_land_cover/", country, "_clc_freq.csv
 dir.create(tmp_dir, showWarnings = FALSE)
 terraOptions(tempdir = tmp_dir)
 
-## Read in eBMS transect coordinates
-transects <- read_csv(transects_path)
+## Get list of transects visited during selected years
+visits <- read_csv(visits_path) %>%
+  filter(year %in% years)
+
+transects_list <- unique(visits$transect_id)
+
+## Read in eBMS transect coordinates and filter to transects visited in relevant year(s)
+transects <- read_csv(transects_path) %>%
+    filter(transect_id %in% transects_list)
 
 transect_coords <- transects %>% 
     dplyr::select(longitude = section_lon, latitude = section_lat)
@@ -82,7 +57,7 @@ clc_r <- terra::rast(cog_url)
 
 ## Extract the CLC for each transect
 # If the resulting csv file already exists and we don't want to overwrite files, read it in
-# Otherwise run the extraction and save the output to csv
+# Otherwise run the extraction and save the output to csv (~10 mins runtime)
 if (file.exists(ebms_clc_path) & !overwrite_files) {
   ebms_clc <- read_csv(ebms_clc_path)
 } else {
@@ -148,11 +123,13 @@ transects <- transects %>%
 # plot(europe_map$geometry)
 # points(clc_inspect$transect_lon, clc_inspect$transect_lat, col = "red", cex = 0.3)
 
-### Get CLC split for selected scheme's transects =============================================================================================
+### Calculate CLC split for selected scheme's transects =======================================================================================
 
-## Filter transects to relevant scheme
+## Filter transects to relevant scheme and filter out NA locations
 transects_scheme <- transects %>%
-  filter(bms_id == scheme_id)
+  filter(bms_id %in% scheme_id,
+         !is.na(transect_lon),
+         !is.na(transect_lat))
 
 ## Calculate split of CLC classes
 summary_transects <- transects_scheme %>%
@@ -162,18 +139,16 @@ summary_transects <- transects_scheme %>%
             perc_weighted = sum(section_length, na.rm = TRUE)/sum(transects_scheme$section_length, na.rm = TRUE) * 100
             )
 
-### Get CLC split for whole scheme area =======================================================================================================
+### Get CLC split for whole country/scheme area ===============================================================================================
 
-# If country raster is already saved and we don't want to overwrite files, then read it in
-# Otherwise go through pre-processing to produce country raster, and save it to file
-
+## If country raster is already saved and we don't want to overwrite files, then read it in
+## Otherwise go through pre-processing to produce country raster, and save it to file
 if (file.exists(country_raster_path) & !overwrite_files) {
   country_clc <- terra::rast(country_raster_path)
 } else {
-  
   ## Get boundaries for selected country
-# Use geounit instead of country to exclude overseas territories e.g. French Guiana for France
-country_vec <- rnaturalearth::ne_countries(geounit = "France", type = "map_units", scale = "medium", returnclass = "sf") %>%
+  # Use geounit instead of country to exclude overseas territories e.g. French Guiana for France
+country_vec <- rnaturalearth::ne_countries(geounit = country, type = "map_units", scale = "medium", returnclass = "sf") %>%
   filter(iso_a3 == country_iso_a3) %>%
   st_transform(crs = crs(clc_r))
 
@@ -189,7 +164,7 @@ country_vec <- rnaturalearth::ne_countries(geounit = "France", type = "map_units
 
   ## Remove NA cells
   # This only works on cells at the edge of the raster
-  country_clc <- trim(country_clc, value = 254)
+  country_clc <- trim(country_clc)
 
   ## Check country_clc has been cropped correctly to extent of country_vec
   # plot(ext(country_clc))
@@ -200,44 +175,27 @@ country_vec <- rnaturalearth::ne_countries(geounit = "France", type = "map_units
 
   ## Save raster
   raster::writeRaster(country_clc, country_raster_path,
-                      format = "GTiff", overwrite = TRUE)
+                      overwrite = TRUE)
 
 }
 
 
+## If CLC count is already saved and we don't want to overwrite files, then read it in
+## Otherwise make a frequency table of cells in each CLC class
+if (file.exists(country_clc_freq_path) & !overwrite_files) {
+  ## Read in frequency table
+  country_clc_freq <- read_csv(country_clc_freq_path)
+} else {
+  ## Calculate frequency table
+  country_clc_freq <- freq(country_clc)
 
+  ## Save frequency table
+  write_csv(country_clc_freq, country_clc_freq_path)
+}
 
-
-
-
-
-
-
-## Read processed raster from file
-# country_clc <- terra::rast(country_raster_path)
-
-## Get frequency count of cells in each class
-# Saved as csv as this line takes some time to run
-
-# country_clc_freq <- freq(country_clc)
-# write_csv(country_clc_freq, "data/whole_ebms_extract_2020_2024_for_ukceh_land_cover_analysis_extracted_on_20251121/fr_scheme_area_clc.csv")
-
-# Read in CLC frequency table
-country_clc_freq <- read_csv(country_clc_freq_path)
-
-# Summarise CLC classes for whole scheme area
+## Summarise CLC classes for whole scheme area
 summary_country <- country_clc_freq %>%
   dplyr::select(clc = value,
          n_cell = count) %>%
   mutate(perc = n_cell / sum(n_cell) * 100)
-
-########################## NEXT STEPS ##########################
-
-# |/| Try using trim function to remove NAs and NA-like values like 0, 253, 254
-# |/| Get proportion of transects in France that are in each CLC class
-# | | Get list of country names for BMS schemes
-# | | Make this into a function I can run on each country
-# |/| Try to extract CLC values for entire country (may struggle...) and write to csv
-# |/| Add step to save cropped-to-country raster file so it doesn't need to be recreated each time
-
 
