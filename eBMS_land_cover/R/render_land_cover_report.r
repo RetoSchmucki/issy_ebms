@@ -1,16 +1,3 @@
-########################## NEXT STEPS ##########################
-
-# |/| Try using trim function to remove NAs and NA-like values like 0, 253, 254
-# |/| Get proportion of transects in France that are in each CLC class
-# |/| Get list of country names for BMS schemes
-# |/| Make this into a function I can run on each country
-# |/| Try to extract CLC values for entire country (may struggle...) and write to csv
-# |/| Add step to save cropped-to-country raster file so it doesn't need to be recreated each time
-# |/| Fix map caption to say actual year range (if less than 5 years are selected)
-# | | Add more space between bars on plot
-# |/| Run for Germany and Spain
-
-
 ## Load libraries
 library(countrycode)
 library(rmarkdown)
@@ -19,8 +6,8 @@ library(rmarkdown)
 ### Set parameters =========================================================================================================================
 
 ## Specify country/area name and scheme ID
-country <- "Spain"
-scheme_id <- c("ESBMS", "ES-BABMS", "ES-ZEBMS", "ES-CTBMS")
+country <- "Germany"
+scheme_id <- c("DEBMS")
 country_iso_a3 <- countrycode(country, origin = "country.name.en", destination = "iso3c")
 
 ## Specify years to include
