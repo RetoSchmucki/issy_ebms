@@ -6,8 +6,8 @@ library(rmarkdown)
 ### Set parameters =========================================================================================================================
 
 ## Specify country/area name and scheme ID
-country <- "Germany"
-scheme_id <- c("DEBMS")
+country <- "Spain"
+scheme_id <- c("ESBMS", "ES-BABMS", "ES-ZEBMS", "ES-CTBMS")
 country_iso_a3 <- countrycode(country, origin = "country.name.en", destination = "iso3c")
 
 ## Specify years to include
